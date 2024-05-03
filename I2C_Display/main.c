@@ -5,19 +5,20 @@ static void UART_Config(void);
 static void I2C_Config(void);
 static void GPIO_Config(void);
 static void ClockConfig(void);
+static void I2C1_Config(void);
 
 // Functionalities
-static void delayMs(uint16_t);
-static void delayMicrosecs(uint64_t);
 static void LED_On(GPIO_Type *, uint32_t);
 static void LED_Off(GPIO_Type *, uint32_t);
 static void LED_Toggle(GPIO_Type *, uint32_t);
 static void ResetWatchDog(void);
 
 // Variables
+volatile uint64_t tens_micros = 0;
 uint64_t millis = 0;
 uint64_t blink_aux = 0, print_aux = 0;
 char uart_c[50];
+volatile uint32_t time_delay = 0;
 
 // Master control
 uint8_t program_state = 0;   // 0 = no error, 1 = error
@@ -30,20 +31,22 @@ int main(void){
 	// Configure UART channel
 	UART_Config();
 	// I2C Config
-	I2C_Config();
+	//I2C_Config();
+	I2C1_Config();
 
 	// Turn off LEDS
 	GPIOD->PDOR |= 0x02;        // Blue
 	GPIOB->PDOR |= 0x40000;     // Red
 	GPIOB->PDOR |= 0x80000;     // Green
 
-	// Configure display
-	LCD_DefaultInit(I2C0, &millis);
-
 	// Starting sequence
 	LED_On(GPIOB, GREEN);
 	delayMs(3000);
 	LED_Off(GPIOB, GREEN);
+
+	// Configure display
+	//LCD_DefaultInit(I2C0, &millis);
+	//LCD_DefaultInit(I2C1, &millis);
 
 	// UART message
 	strcpy(uart_c, "hello\n");
@@ -84,18 +87,21 @@ int main(void){
 
 // Systick callback
 void SysTick_Handler(void){   // I configured it to get called each millisecond
-	millis ++;
+	tens_micros ++;
+	millis = tens_micros >> 7;
+	if(time_delay > 0)
+		time_delay --;
 }
 
 // Function to configure clocks
 void ClockConfig(void){
 	// Systick clock frequency = 21 Mhz
-	SysTick->LOAD = 21799;    	 // Remember default systick freq for KL25Z is 41.94 Mhz
+	SysTick->LOAD = (SystemCoreClock / 100000) - 1;    	 // Remember default systick freq for KL25Z is 41.94 Mhz
 	SysTick->CTRL |= 0x05;     	 // Enable timer and set sysclk as source clock
-	SysTick->CTRL |= 0x02;     // Enable Systick interrupt
+	SysTick->CTRL |= 0x02;       // Enable Systick interrupt
 
 	// Configure watchdog
-	SIM->COPC = 0x0C;
+	//SIM->COPC = 0x0C;
 }
 
 // Function to configure GPIOs
@@ -134,13 +140,29 @@ void UART_Config(void){
 // Configure I2C
 void I2C_Config(void){
 	SIM->SCGC4 |= 0x40;   // Enable I2C0 clock
+	SIM->SCGC5 |= 0x800;  // Enable clock port C
 	I2C0->C1 = 0x00;      // Disable I2C0 peripheral to configure
 
 	// Need to reach a frequency close to 100 khz
-	I2C0->F |= 0x80;      // Set Mul factor to 4
-	I2C0->F |= 0x0E;      // Go to manual page 706 (SCL divider of 56)
+	//I2C0->F |= 0x80;      // Set Mul factor to 4
+	//I2C0->F |= 0x0E;      // Go to manual page 706 (SCL divider of 56)
+	I2C0->F = 0x1F;
 
-	I2C0->C1 |= 0X80;     // Enable I2C module
+	I2C0->C1 |= 0X80;         // Enable I2C module
+	PORTC->PCR[8] = 0x0600;   // Enable SDA for this pin
+	PORTC->PCR[9] = 0x0600;   // Enable SCL for this pin
+}
+
+void I2C1_Config(void){
+	SIM->SCGC4 |= 0x80;   // enable I2C1 Clock
+	SIM->SCGC5 |= 0x800;  // Enable clock port C
+	PORTC->PCR[11] = 0x0600;   // Enable SDA for this pin
+	PORTC->PCR[10] = 0x0600;   // Enable SCL for this pin
+	I2C1->C1 = 0x00;     	   // Disable to configure
+	I2C1->S = 2; /* Clear interrupt flag */
+
+	I2C1->F = 0x1F;
+	I2C1->C1 |= 0x80;	// Enable I2C module
 }
 
 // Turn on LED
@@ -166,25 +188,13 @@ void ResetWatchDog(void){
 }
 
 // Delay in milliseconds
-void delayMs(uint16_t millisecs){   // Use the systick timer module
-	uint16_t counter = 0;
-
-	// Check until current count = millis
-	while(counter < millisecs){
-		if(SysTick->CTRL & 0x10000){
-			counter ++;
-		}
-	}
+void delayMs(uint64_t millisecs){   // Use the systick timer module
+	time_delay = millisecs << 7;    // delay_time is decremented within the interrupt
+	while(time_delay != 0){}
 }
 
 // Delay microseconds
-void delayMicrosecs(uint64_t microsecs){   // Use the systick timer module
-	uint64_t counter = 0;
-
-	// Check until current count = millis
-	while(counter < microsecs){
-		if(SysTick->CTRL & 0x10000){
-			counter ++;
-		}
-	}
+void delayUs(uint64_t microsecs){   // Use the systick timer module
+	time_delay = microsecs;
+	while(time_delay != 0){}
 }

@@ -11,7 +11,7 @@
 #include "Headers/Stepper.h"
 
 //////////// MACROS ////////////
-#define TIME_TO_RUN_STEPPER 2000
+#define TIME_TO_RUN_STEPPER 0
 #define TIME_TO_PRINT_MS    1000
 #define TIME_TO_READ_ADC_MS 1000
 #define UART_TIMEOUT_MS  1000

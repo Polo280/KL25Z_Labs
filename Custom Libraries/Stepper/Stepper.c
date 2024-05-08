@@ -41,7 +41,7 @@ void StepperInit(Stepper *step_struct){
 	GPIO_Configure(step_struct->dir_port, step_struct->dir_pin);
 	GPIO_Configure(step_struct->enable_port, step_struct->enable_pin);
 	// Set default between steps delay (in microseconds)
-	SetStepperDelay(step_struct, 1000);
+	SetStepperDelay(step_struct, 1200);
 	// Set default direction clockwise
 	SetStepperDirection(step_struct, CLOCKWISE);
 }
@@ -50,18 +50,18 @@ void StepperInit(Stepper *step_struct){
 void RunStepper(Stepper* stepper){
 	GPIO_Type* stp_gpio = IdentifyGPIO(stepper->stp_port);
 
-	SetPinHigh(stp_gpio, stepper->stp_pin);
+	SetPinHigh(stp_gpio, ToBinaryGPIO(stepper->stp_pin));
 	delayUs(stepper->step_delay);
-	SetPinLow(stp_gpio, stepper->stp_pin);
+	SetPinLow(stp_gpio, ToBinaryGPIO(stepper->stp_pin));
 	delayUs(stepper->step_delay);
 }
 
 void SetPinHigh(GPIO_Type *port, uint32_t pin){
-	port->PDOR &= ~pin;
+	port->PDOR |= pin;
 }
 
 void SetPinLow(GPIO_Type *port, uint32_t pin){
-	port->PDOR |= pin;
+	port->PDOR &= ~pin;
 }
 
 static GPIO_Type* IdentifyGPIO(PORT_Type *port){
@@ -83,15 +83,15 @@ void GPIO_Configure(PORT_Type *port, uint32_t pin){
 	port->PCR[pin] = 0x100;
 
 	if(port == PORTA){
-		GPIOA->PDDR |= pin;    // Set as output
+		GPIOA->PDDR |= ToBinaryGPIO(pin);    // Set as output
 	}else if (port == PORTB){
-		GPIOB->PDDR |= pin;
+		GPIOB->PDDR |= ToBinaryGPIO(pin);
 	}else if (port == PORTC){
-		GPIOC->PDDR |= pin;
+		GPIOC->PDDR |= ToBinaryGPIO(pin);
 	}else if (port == PORTD){
-		GPIOD->PDDR |= pin;
+		GPIOD->PDDR |= ToBinaryGPIO(pin);
 	}else{
-		GPIOE->PDDR |= pin;
+		GPIOE->PDDR |= ToBinaryGPIO(pin);
 	}
 }
 

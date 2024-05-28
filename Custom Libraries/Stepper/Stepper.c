@@ -12,6 +12,7 @@ Stepper CreateStepper(uint32_t stp_pin, PORT_Type* stp_port, uint32_t dir_pin,
 	stepper.dir_port = dir_port;
 	stepper.enable_pin = enable_pin;
 	stepper.enable_port = enable_port;
+	stepper.run = 1;
 	return stepper;
 }
 
@@ -41,7 +42,7 @@ void StepperInit(Stepper *step_struct){
 	GPIO_Configure(step_struct->dir_port, step_struct->dir_pin);
 	GPIO_Configure(step_struct->enable_port, step_struct->enable_pin);
 	// Set default between steps delay (in microseconds)
-	SetStepperDelay(step_struct, 1200);
+	SetStepperDelay(step_struct, 4000);
 	// Set default direction clockwise
 	SetStepperDirection(step_struct, CLOCKWISE);
 }
@@ -50,10 +51,54 @@ void StepperInit(Stepper *step_struct){
 void RunStepper(Stepper* stepper){
 	GPIO_Type* stp_gpio = IdentifyGPIO(stepper->stp_port);
 
-	SetPinHigh(stp_gpio, ToBinaryGPIO(stepper->stp_pin));
-	delayUs(stepper->step_delay);
+	if(stepper->run == 1){
+		SetPinHigh(stp_gpio, ToBinaryGPIO(stepper->stp_pin));
+		delayUs(stepper->step_delay);
+		SetPinLow(stp_gpio, ToBinaryGPIO(stepper->stp_pin));
+		delayUs(stepper->step_delay);
+	}else{
+		SetPinLow(stp_gpio, ToBinaryGPIO(stepper->stp_pin));
+	}
+}
+
+/**
+ * @brief This function sets the velocity of the motor given a resolution
+ * Half of the resolution is set for counterclockwise and the rest for clockwise
+ * */
+void SetStepperVelocity(Stepper* stepper, uint8_t velocity){
+	if(velocity >= (SPEED_RESOLUTION >> 1))
+		SetStepperDirection(stepper, CLOCKWISE);
+	else
+		SetStepperDirection(stepper, COUNTERCLOCKWISE);
+	velocity = (velocity >= (SPEED_RESOLUTION >> 1)? velocity - (SPEED_RESOLUTION >> 1) : velocity << 1);
+	uint16_t delay_us = (MIN_US_DELAY * SPEED_RESOLUTION) / velocity;
+	if(delay_us < MAX_US_DELAY){
+		stepper->run = 1;
+		SetStepperDelay(stepper, delay_us);
+	}
+	else{
+		stepper->run = 0;
+	}
+}
+
+/**
+ * @brief A function to move certain number of millimeters in the current direction
+ * */
+void MoveMillimeters(Stepper *stepper, uint16_t millimeters){
+	uint16_t counter = 0;  uint16_t desired_count = (millimeters / STEP_SIZE); // Check if it can handle float div
+	stepper->run = 1;
+	while(counter < desired_count){
+		for(uint8_t i=0; i < stepper->steps_rev; i++){   // One spin
+			RunStepper(stepper);
+		}
+	}
+	stepper->run = 0;
+	RunStepper(stepper);   // Turn stepper off
+}
+
+void StepperOff(Stepper* stepper){
+	GPIO_Type* stp_gpio = IdentifyGPIO(stepper->stp_port);
 	SetPinLow(stp_gpio, ToBinaryGPIO(stepper->stp_pin));
-	delayUs(stepper->step_delay);
 }
 
 void SetPinHigh(GPIO_Type *port, uint32_t pin){

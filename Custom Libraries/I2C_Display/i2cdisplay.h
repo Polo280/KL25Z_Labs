@@ -3,6 +3,7 @@
 
 /////////// Includes ///////////
 #include "MKL25Z4.h"
+#include "string.h"
 #include "main.h"
 
 //////////// MACROS ////////////
@@ -57,7 +58,7 @@
 #define ERROR        1
 
 // I2C MACROS
-#define I2C_TIMEOUT_MS   100
+#define I2C_TIMEOUT_MS   50
 
 /////////// Variables //////////
 // Config struct
@@ -80,10 +81,10 @@ enum LCD_ADDRESS{
 
 // I2C handler
 extern I2C_Type *hi2c;
-extern uint64_t *millisecs;
+extern volatile const uint64_t *millisecs;
 
 ////////// Functions  //////////
-RETURN_TYPE LCD_DefaultInit(I2C_Type *, uint64_t *);
+RETURN_TYPE LCD_DefaultInit(I2C_Type *, volatile const uint64_t *);
 RETURN_TYPE LCD_Init(LCD_Config_Struct *);
 RETURN_TYPE Write4Bits(uint8_t, uint16_t);
 RETURN_TYPE Send(uint8_t, uint8_t, uint16_t);
@@ -97,15 +98,14 @@ RETURN_TYPE Cursor(void);
 RETURN_TYPE NoCursor(void);
 RETURN_TYPE Blink(void);
 RETURN_TYPE NoBlink(void);
+RETURN_TYPE Backlight(void);
+RETURN_TYPE NoBacklight(void);
 
 // Other user commands
+RETURN_TYPE PrintStr(const char *);
 RETURN_TYPE Home(void);
 RETURN_TYPE Clear(void);
 RETURN_TYPE SetCursor(uint8_t, uint8_t);
-
-// Timing functions
-void delayMillis(uint16_t);
-void delayMicros(uint64_t);
 
 // I2C functions
 RETURN_TYPE I2C_WriteByte(uint8_t, uint16_t);

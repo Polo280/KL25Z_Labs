@@ -23,7 +23,7 @@
 #define CLOCKWISE 1
 #define COUNTERCLOCKWISE 0
 // Resolution for setting the speed
-#define STEPPER_MAX_FREQUENCY_HZ 250
+#define STEPPER_MAX_FREQUENCY_HZ 200
 
 /////////// Variables //////////
 extern uint16_t StepperXFreq;
@@ -48,6 +48,10 @@ void StepperZ_RunFreq(uint16_t);
 void StepperX_RunPercentage(uint8_t);
 void StepperY_RunPercentage(uint8_t);
 void StepperZ_RunPercentage(uint8_t);
+// Individual offs
+void StepperX_Off(void);
+void StepperY_Off(void);
+void StepperZ_Off(void);
 // General Motor Control
 void SteppersInit(void);
 void SetMotorsOff(void);

@@ -94,46 +94,61 @@ void TPM2_Init(void) {
 // Set the direction of the steppers
 void StepperX_Direction(uint8_t direction){
 	if(direction == CLOCKWISE){
-		SetPinHigh(IdentifyGPIO(STEPPERX_DIR_PORT), STEPPERX_DIR_PIN);
+		SetPinHigh(IdentifyGPIO(STEPPERX_DIR_PORT), ToBinaryGPIO(STEPPERX_DIR_PIN));
 	}else{
-		SetPinLow(IdentifyGPIO(STEPPERX_DIR_PORT), STEPPERX_DIR_PIN);
+		SetPinLow(IdentifyGPIO(STEPPERX_DIR_PORT), ToBinaryGPIO(STEPPERX_DIR_PIN));
 	}
 }
 
 void StepperY_Direction(uint8_t direction){
 	if(direction == CLOCKWISE){
-		SetPinHigh(IdentifyGPIO(STEPPERY_DIR_PORT), STEPPERY_DIR_PIN);
+		SetPinHigh(IdentifyGPIO(STEPPERY_DIR_PORT), ToBinaryGPIO(STEPPERY_DIR_PIN));
 	}else{
-		SetPinLow(IdentifyGPIO(STEPPERY_DIR_PORT), STEPPERX_DIR_PIN);
+		SetPinLow(IdentifyGPIO(STEPPERY_DIR_PORT), ToBinaryGPIO(STEPPERY_DIR_PIN));
 	}
 }
 
 void StepperZ_Direction(uint8_t direction){
 	if(direction == CLOCKWISE){
-		SetPinHigh(IdentifyGPIO(STEPPERZ_DIR_PORT), STEPPERZ_DIR_PIN);
+		SetPinHigh(IdentifyGPIO(STEPPERZ_DIR_PORT), ToBinaryGPIO(STEPPERZ_DIR_PIN));
 	}else{
-		SetPinLow(IdentifyGPIO(STEPPERZ_DIR_PORT), STEPPERX_DIR_PIN);
+		SetPinLow(IdentifyGPIO(STEPPERZ_DIR_PORT), ToBinaryGPIO(STEPPERZ_DIR_PIN));
 	}
 }
 
 
 // Set Stepper speed based on an input percentage
 void StepperX_RunPercentage(uint8_t percentage){
-	// Calculate operating frequency based on maximum allowed frequency
-	uint16_t frequency = (STEPPER_MAX_FREQUENCY_HZ * percentage) / 100;
-	StepperX_RunFreq(frequency);
+	// Set an inferior limit
+	if(percentage < 5){
+		StepperX_Off();
+	}else{
+		// Calculate operating frequency based on maximum allowed frequency
+		uint16_t frequency = (STEPPER_MAX_FREQUENCY_HZ * percentage) / 100;
+		StepperX_RunFreq(frequency);
+	}
 }
 
 void StepperY_RunPercentage(uint8_t percentage){
-	// Calculate operating frequency based on maximum allowed frequency
-	uint16_t frequency = (STEPPER_MAX_FREQUENCY_HZ * percentage) / 100;
-	StepperY_RunFreq(frequency);
+	// Set an inferior limit
+	if(percentage < 5){
+		StepperY_Off();
+	}else{
+		// Calculate operating frequency based on maximum allowed frequency
+		uint16_t frequency = (STEPPER_MAX_FREQUENCY_HZ * percentage) / 100;
+		StepperY_RunFreq(frequency);
+	}
 }
 
 void StepperZ_RunPercentage(uint8_t percentage){
-	// Calculate operating frequency based on maximum allowed frequency
-	uint16_t frequency = (STEPPER_MAX_FREQUENCY_HZ * percentage) / 100;
-	StepperZ_RunFreq(frequency);
+	// Set an inferior limit
+	if(percentage < 5){
+		StepperZ_Off();
+	}else{
+		// Calculate operating frequency based on maximum allowed frequency
+		uint16_t frequency = (STEPPER_MAX_FREQUENCY_HZ * percentage) / 100;
+		StepperZ_RunFreq(frequency);
+	}
 }
 
 // Set all motors speed to the same specific speed
@@ -172,6 +187,19 @@ void StepperZ_RunFreq(uint16_t freq){
 	TPM2->CONTROLS[0].CnV = tpm_mod / 2;
 	// Update global variable
 	StepperZFreq = freq;
+}
+
+// Individual motors off
+void StepperX_Off(void){
+	TPM0->CONTROLS[0].CnV = 0;
+}
+
+void StepperY_Off(void){
+	TPM1->CONTROLS[0].CnV = 0;
+}
+
+void StepperZ_Off(void){
+	TPM2->CONTROLS[0].CnV = 0;
 }
 
 // Set TPMs duty cycle to 0
